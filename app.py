@@ -10,6 +10,7 @@ from mysql.connector import Error
 import pandas as pd
 from datetime import datetime
 import hashlib
+from huggingface_hub import hf_hub_download
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  PAGE CONFIG
@@ -59,7 +60,15 @@ st.markdown("""
 # ══════════════════════════════════════════════════════════════════════════════
 IMG_SIZE    = (224, 224)
 CLASS_NAMES = ["benign", "malignant"]
-MODEL_PATH  = "breast_cancer_vgg16.keras"
+
+# Load model from Hugging Face if not already downloaded locally
+MODEL_PATH = "breast_cancer_vgg16.keras"
+if not os.path.exists(MODEL_PATH):
+    with st.spinner("Downloading model from Hugging Face... (first run only)"):
+        MODEL_PATH = hf_hub_download(
+            repo_id="iman0642/breast-cancer-vgg16",
+            filename="breast_cancer_vgg16.keras"
+        )
 
 ROLE_ICONS = {
     "admin":       "👑",
@@ -69,13 +78,13 @@ ROLE_ICONS = {
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  DATABASE CONFIG
+#  DATABASE CONFIG  (uses environment variables for deployment)
 # ══════════════════════════════════════════════════════════════════════════════
 DB_CONFIG = {
-    "host":     "localhost",
-    "user":     "root",
-    "password": "admin",
-    "database": "breast_cancer_db"
+    "host":     os.getenv("DB_HOST",     "localhost"),
+    "user":     os.getenv("DB_USER",     "root"),
+    "password": os.getenv("DB_PASSWORD", "admin"),
+    "database": os.getenv("DB_NAME",     "breast_cancer_db")
 }
 
 def get_connection(silent=False):
@@ -112,7 +121,6 @@ def init_db():
         return False, "Could not connect to MySQL. Is the server running?"
     cur = conn.cursor()
 
-    # ── users ─────────────────────────────────────────────────────────────────
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
             user_id       INT           NOT NULL AUTO_INCREMENT,
@@ -128,7 +136,6 @@ def init_db():
         ) ENGINE=InnoDB;
     """)
 
-    # ── images_metadata ───────────────────────────────────────────────────────
     cur.execute("""
         CREATE TABLE IF NOT EXISTS images_metadata (
             image_id          INT          NOT NULL AUTO_INCREMENT,
@@ -149,7 +156,6 @@ def init_db():
         ) ENGINE=InnoDB;
     """)
 
-    # ── prediction_logs ───────────────────────────────────────────────────────
     cur.execute("""
         CREATE TABLE IF NOT EXISTS prediction_logs (
             id                 INT          NOT NULL AUTO_INCREMENT,
@@ -177,7 +183,6 @@ def init_db():
 
     migrate_schema(cur)
 
-    # ── demo users ────────────────────────────────────────────────────────────
     demo_users = [
         ("admin",        "Admin User",          "admin@hospital.com",       "admin"),
         ("doctor1",      "Dr. Tayyaba Akhtar",  "tayyaba@hospital.com",     "doctor"),
@@ -304,8 +309,6 @@ def deactivate_user(user_id):
 # ══════════════════════════════════════════════════════════════════════════════
 #  CRUD FUNCTIONS
 # ══════════════════════════════════════════════════════════════════════════════
-
-# ── CREATE ────────────────────────────────────────────────────────────────────
 def db_insert_prediction(image_name, predicted_class, confidence_score,
                          user_id=None, file_size_kb=None,
                          image_width_px=None, image_height_px=None,
@@ -315,7 +318,6 @@ def db_insert_prediction(image_name, predicted_class, confidence_score,
         return None
     cur = conn.cursor()
 
-    # Step 1 — insert into images_metadata first
     cur.execute("""
         INSERT INTO images_metadata
             (image_name, original_filename, file_size_kb,
@@ -325,7 +327,6 @@ def db_insert_prediction(image_name, predicted_class, confidence_score,
           image_width_px, image_height_px, user_id))
     image_id = cur.lastrowid
 
-    # Step 2 — insert into prediction_logs with the new image_id
     cur.execute("""
         INSERT INTO prediction_logs
             (image_id, image_name, predicted_class, confidence_score,
@@ -340,7 +341,6 @@ def db_insert_prediction(image_name, predicted_class, confidence_score,
     conn.close()
     return new_id
 
-# ── READ ──────────────────────────────────────────────────────────────────────
 def db_get_all(filter_class=None, min_conf=0.0, only_unverified=False):
     conn = get_connection(silent=True)
     if not conn:
@@ -419,7 +419,6 @@ def db_summary():
     conn.close()
     return rows
 
-# ── UPDATE ────────────────────────────────────────────────────────────────────
 def db_update_prediction(pred_id, new_class, new_conf, notes, reviewer_id=None):
     conn = get_connection(silent=True)
     if not conn:
@@ -440,7 +439,6 @@ def db_update_prediction(pred_id, new_class, new_conf, notes, reviewer_id=None):
     conn.close()
     return affected
 
-# ── DELETE ────────────────────────────────────────────────────────────────────
 def db_delete_prediction(pred_id):
     conn = get_connection(silent=True)
     if not conn:
@@ -625,7 +623,7 @@ def show_sidebar():
     return page
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  PAGE — PREDICT & SAVE  (CREATE)
+#  PAGE — PREDICT & SAVE
 # ══════════════════════════════════════════════════════════════════════════════
 def page_predict():
     user = st.session_state.user
@@ -657,10 +655,6 @@ def page_predict():
     with result_col:
         st.subheader("🔍 Prediction")
         if uploaded:
-            if not os.path.exists(MODEL_PATH):
-                st.error(f"Model file not found: `{MODEL_PATH}`")
-                return
-
             with st.spinner("Analysing image..."):
                 model = load_my_model()
                 pred_class, confidence, probs, elapsed_ms = predict(img, model)
@@ -680,7 +674,6 @@ def page_predict():
 
             st.divider()
 
-            # Auto-save — now populates BOTH images_metadata AND prediction_logs
             if refresh_db_status():
                 db_class = pred_class.capitalize()
                 new_id   = db_insert_prediction(
@@ -707,7 +700,7 @@ def page_predict():
             st.info("⬅️ Upload an ultrasound image to begin.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  PAGE — VIEW HISTORY  (READ)
+#  PAGE — VIEW HISTORY
 # ══════════════════════════════════════════════════════════════════════════════
 def page_records():
     st.title("📋 Prediction History")
