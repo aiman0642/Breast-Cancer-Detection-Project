@@ -1,0 +1,15 @@
+# Model
+*.keras
+*.h5
+*.hdf5
+
+# Sensitive
+setup_passwords.py
+.env
+
+# Junk
+*.zip
+__pycache__/
+*.pyc
+venv/
+env/
