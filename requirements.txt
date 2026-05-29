@@ -1,0 +1,8 @@
+streamlit==1.45.0
+tensorflow==2.21.0
+mysql-connector-python==9.7.0
+huggingface_hub==1.17.0
+Pillow
+pandas
+numpy
+matplotlib
