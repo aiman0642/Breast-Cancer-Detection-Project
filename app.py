@@ -542,15 +542,14 @@ def show_login():
                         st.error("❌ Invalid username or password.")
 
         st.markdown("")
-        with st.expander("👥 Demo Credentials (click to view)"):
-            st.markdown("""
-            | Role | Username | Password |
-            |------|----------|----------|
-            | 👑 Admin | `admin` | `admin` |
-            | 👨‍⚕️ Doctor | `doctor1` | `doctor1` |
-            | 🔬 Radiologist | `dr_aiman` | `dr_aiman` |
-            | 🧪 Researcher | `researcher1` | `researcher1` |
-            """)
+       with st.expander("👥 Demo Credentials (click to view)"):
+             st.markdown("""
+             | Role | Username | Password |
+             |------|----------|----------|
+             | 👨‍⚕️ Doctor | `doctor1` | `doctor1` |
+             | 🔬 Radiologist | `dr_aiman` | `dr_aiman` |
+             | 🧪 Researcher | `researcher1` | `researcher1` |
+             """)
             st.caption("Password is the same as username for all demo accounts.")
 
         st.markdown("""
