@@ -32,6 +32,10 @@ This system classifies breast ultrasound images as **Benign** or **Malignant** u
 | 🔬 Radiologist | `dr_aiman` | `dr_aiman` |
 | 🧪 Researcher | `researcher1` | `researcher1` |
 
+## 🤖 Model
+VGG16 model weights hosted on Hugging Face Hub
+https://huggingface.co/iman0642/breast-cancer-vgg16
+
 ## Dataset
 This project uses the BUSI (Breast Ultrasound Images) Dataset.
 Download it from: https://www.kaggle.com/datasets/aryashah2k/breast-ultrasound-images-dataset
