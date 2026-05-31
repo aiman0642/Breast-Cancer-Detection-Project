@@ -28,7 +28,6 @@ This system classifies breast ultrasound images as **Benign** or **Malignant** u
 ## 👤 Demo Credentials
 | Role | Username | Password |
 |------|----------|----------|
-| 👑 Admin | `admin` | `admin` |
 | 👨‍⚕️ Doctor | `doctor1` | `doctor1` |
 | 🔬 Radiologist | `dr_aiman` | `dr_aiman` |
 | 🧪 Researcher | `researcher1` | `researcher1` |
